@@ -15,7 +15,6 @@ import type {
   TTxProgressInfo,
   TExchangeNode,
   TExtrinsicInfo,
-  TEthOptionsInfo,
 } from '@paraspell/xcm-router';
 import {
   TransactionType,
@@ -35,12 +34,8 @@ import { submitTransaction } from '../../utils';
 import { ErrorAlert } from '../common/ErrorAlert';
 import { useWallet } from '../../hooks/useWallet';
 import { API_URL } from '../../consts';
-import type { BrowserProvider, LogDescription } from 'ethers';
+import type { BrowserProvider } from 'ethers';
 import { ethers } from 'ethers';
-import { IGateway__factory } from '@snowbridge/contract-types';
-import type { MultiAddressStruct } from '@snowbridge/contract-types/dist/IGateway';
-import { u8aToHex } from '@polkadot/util';
-import { decodeAddress } from '@polkadot/keyring';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { isForeignAsset } from '@paraspell/sdk';
 import { Web3 } from 'web3';
@@ -239,9 +234,7 @@ export const XcmRouter = () => {
         },
       );
 
-      const txs = (await response.data) as Array<
-        TExtrinsicInfo | TEthOptionsInfo
-      >;
+      const txs = (await response.data) as TExtrinsicInfo[];
 
       for (const txInfo of txs) {
         onStatusChange({
@@ -249,88 +242,27 @@ export const XcmRouter = () => {
           status: TransactionStatus.IN_PROGRESS,
         });
 
-        if (txInfo.type === 'EXTRINSIC') {
-          // Handling of Polkadot transaction
-          const api = await ApiPromise.create({
-            provider: new WsProvider(txInfo.wsProvider),
-          });
-          if (txInfo.statusType === TransactionType.TO_EXCHANGE) {
-            // When submitting to exchange, prioritize the evmSigner if available
-            await submitTransaction(
-              api,
-              api.tx(txInfo.tx),
-              formValues.evmSigner ?? signer,
-              formValues.evmInjectorAddress ?? injectorAddress,
-            );
-          } else {
-            await submitTransaction(
-              api,
-              api.tx(txInfo.tx),
-              signer,
-              injectorAddress,
-            );
-          }
+        // Handling of Polkadot transaction
+        const api = await ApiPromise.create({
+          provider: new WsProvider(txInfo.wsProvider),
+        });
+        if (txInfo.statusType === TransactionType.TO_EXCHANGE) {
+          // When submitting to exchange, prioritize the evmSigner if available
+          await submitTransaction(
+            api,
+            api.tx(txInfo.tx),
+            formValues.evmSigner ?? signer,
+            formValues.evmInjectorAddress ?? injectorAddress,
+          );
         } else {
-          // Handling of Ethereum transaction
-          const apiResponse = txInfo.tx;
-          const GATEWAY_CONTRACT = '0xEDa338E4dC46038493b885327842fD3E301CaB39';
-
-          if (!provider) {
-            throw new Error('Provider not initialized');
-          }
-
-          const tempSigner = await provider.getSigner(formValues.ethAddress);
-
-          const contract = IGateway__factory.connect(
-            GATEWAY_CONTRACT,
-            tempSigner,
+          await submitTransaction(
+            api,
+            api.tx(txInfo.tx),
+            signer,
+            injectorAddress,
           );
-
-          const abi = ethers.AbiCoder.defaultAbiCoder();
-
-          const address: MultiAddressStruct = {
-            data: abi.encode(
-              ['bytes32'],
-              [u8aToHex(decodeAddress(formValues.assetHubAddress))],
-            ),
-            kind: 1,
-          };
-
-          if (!apiResponse) {
-            throw new Error('No response from API');
-          }
-
-          const response = await contract.sendToken(
-            apiResponse.token,
-            apiResponse.destinationParaId,
-            address,
-            apiResponse.destinationFee,
-            apiResponse.amount,
-            {
-              value: apiResponse.fee,
-            },
-          );
-          const receipt = await response.wait(1);
-
-          if (receipt === null) {
-            throw new Error('Error waiting for transaction completion');
-          }
-
-          if (receipt?.status !== 1) {
-            throw new Error('Transaction failed');
-          }
-
-          const events: LogDescription[] = [];
-          receipt.logs.forEach((log) => {
-            const event = contract.interface.parseLog({
-              topics: [...log.topics],
-              data: log.data,
-            });
-            if (event !== null) {
-              events.push(event);
-            }
-          });
         }
+
         onStatusChange({
           type: txInfo.type as TransactionType,
           status: TransactionStatus.SUCCESS,
