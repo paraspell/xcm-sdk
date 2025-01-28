@@ -1,15 +1,15 @@
 import type { ApiPromise } from '@polkadot/api';
 import type ExchangeNode from '../dexNodes/DexNode';
-import type { TTransferOptionsModified } from '../types';
 import type { Extrinsic } from '@paraspell/sdk-pjs';
 import { buildFromExchangeExtrinsic, buildToExchangeExtrinsic } from './utils';
 import { calculateTransactionFee } from '../utils/utils';
+import type { TBuildTransactionsOptionsModified } from '../types';
 
 export const createSwapTx = async (
   originApi: ApiPromise,
   swapApi: ApiPromise,
   exchangeNode: ExchangeNode,
-  options: TTransferOptionsModified,
+  options: TBuildTransactionsOptionsModified,
 ): Promise<{
   amountOut: string;
   tx: Extrinsic;

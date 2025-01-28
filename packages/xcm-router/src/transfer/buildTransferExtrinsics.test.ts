@@ -5,7 +5,7 @@ import * as utils from '../utils/utils';
 import * as transferUtils from './utils';
 import * as selectBestExchange from './selectBestExchange';
 import { buildTransferExtrinsics } from './buildTransferExtrinsics';
-import type { TBuildTransferExtrinsicsOptions } from '../types';
+import type { TBuildTransactionsOptions } from '../types';
 import { TransactionType } from '../types';
 import type ExchangeNode from '../dexNodes/DexNode';
 import type { Extrinsic } from '@paraspell/sdk-pjs';
@@ -73,7 +73,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('should build transfer extrinsics correctly - manual exchange selection', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
     };
@@ -89,7 +89,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('should build transfer extrinsics correctly - manual exchange selection', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       from: 'Hydration',
@@ -138,7 +138,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('throws error for invalid EVM injector Ethereum address', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       evmInjectorAddress: 'invalid_eth_address',
@@ -149,7 +149,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('throws error when Injector address is an Ethereum address', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       injectorAddress: '0x1501C1413e4178c38567Ada8945A80351F7B8496',
@@ -160,7 +160,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('correctly processes transactions based on the specified transaction type', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       type: TransactionType.TO_EXCHANGE,
@@ -174,7 +174,7 @@ describe('buildTransferExtrinsics', () => {
     vi.mocked(createApiInstanceForNode).mockRejectedValue(
       new Error('Failed to create API instance'),
     );
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
     };
@@ -182,7 +182,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('handles TO_DESTINATION transaction type correctly', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       recipientAddress: '0x1501C1413e4178c38567Ada8945A80351F7B8496',
       exchange: 'AcalaDex',
@@ -193,11 +193,10 @@ describe('buildTransferExtrinsics', () => {
     };
     const result = await buildTransferExtrinsics(options);
     expect(result[0].node).toBe('Acala');
-    expect(result[0].type).toBe('EXTRINSIC');
   });
 
   it('handles TO_DESTINATION transaction type correctly', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       to: 'Hydration',
@@ -205,11 +204,10 @@ describe('buildTransferExtrinsics', () => {
     };
     const result = await buildTransferExtrinsics(options);
     expect(result[0].node).toBe('Acala');
-    expect(result[0].type).toBe('EXTRINSIC');
   });
 
   it('handles TO_EXCHANGE transaction type correctly', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'HydrationDex',
       to: 'Acala',
@@ -220,11 +218,10 @@ describe('buildTransferExtrinsics', () => {
     };
     const result = await buildTransferExtrinsics(options);
     expect(result[0].node).toBe('AssetHubPolkadot');
-    expect(result[0].type).toBe('EXTRINSIC');
   });
 
   it('handles TO_EXCHANGE transaction type correctly', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       to: 'Hydration',
@@ -232,11 +229,10 @@ describe('buildTransferExtrinsics', () => {
     };
     const result = await buildTransferExtrinsics(options);
     expect(result[0].node).toBe('Astar');
-    expect(result[0].type).toBe('EXTRINSIC');
   });
 
   it('handles SWAP transaction type correctly', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       to: 'Hydration',
@@ -244,11 +240,10 @@ describe('buildTransferExtrinsics', () => {
     };
     const result = await buildTransferExtrinsics(options);
     expect(result[0].node).toBe('Acala');
-    expect(result[0].type).toBe('EXTRINSIC');
   });
 
   it('skips extrinsic building for transactions already on the exchange', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       from: 'Acala',
@@ -260,7 +255,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('skips extrinsic building for transactions already on the exchange - FULL_TRANSFER', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       from: 'Acala',
@@ -272,7 +267,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('skips extrinsic building for transactions already on destination', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       from: 'Hydration',
@@ -284,7 +279,7 @@ describe('buildTransferExtrinsics', () => {
   });
 
   it('skips extrinsic building for transactions already on destination - FULL_TRANSFER', async () => {
-    const options: TBuildTransferExtrinsicsOptions = {
+    const options: TBuildTransactionsOptions = {
       ...MOCK_TRANSFER_OPTIONS,
       exchange: 'AcalaDex',
       from: 'Hydration',

@@ -4,6 +4,7 @@ import type {
   TNodePolkadotKusama,
   TCurrencyCoreV1,
   TNodeDotKsmWithRelayChains,
+  TPjsApi,
 } from '@paraspell/sdk-pjs';
 import { type Signer } from '@polkadot/types/types';
 import { type EXCHANGE_NODES } from './consts';
@@ -27,10 +28,8 @@ export interface TSwapResult {
 }
 
 export enum TransactionType {
-  TO_EXCHANGE = 'TO_EXCHANGE',
+  TRANSFER = 'TRANSFER',
   SWAP = 'SWAP',
-  TO_DESTINATION = 'TO_DESTINATION',
-  FULL_TRANSFER = 'FULL_TRANSFER',
 }
 
 /**
@@ -38,30 +37,9 @@ export enum TransactionType {
  */
 export interface TTxProgressInfo {
   /**
-   * When true the exchange will be selected automatically.
-   */
-  isAutoSelectingExchange?: boolean;
-  /**
    * The currently executed transaction type.
    */
   type: TransactionType;
-  /**
-   * The transaction hashes grouped by transaction type.
-   */
-  hashes?: {
-    [TransactionType.TO_EXCHANGE]?: string;
-    [TransactionType.SWAP]?: string;
-    [TransactionType.TO_DESTINATION]?: string;
-  };
-  /**
-   * The current transaction status. Either 'IN_PROGRESS' or 'SUCCESS'.
-   */
-  status: TransactionStatus;
-}
-
-export enum TransactionStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  SUCCESS = 'SUCCESS',
 }
 
 /**
@@ -127,18 +105,24 @@ export interface TTransferOptions {
   type?: TransactionType;
 }
 
-export type TBuildTransferExtrinsicsOptions = Omit<
+export type TBuildTransactionsOptions = Omit<
   TTransferOptions,
   'onStatusChange' | 'signer' | 'evmSigner'
 >;
 
-export type TTransferOptionsModified = Omit<TTransferOptions, 'exchange'> & {
+export type TBuildTransactionsOptionsModified = TBuildTransactionsOptions &
+  TAdditionalTransferOptions;
+
+export type TAdditionalTransferOptions = {
   exchangeNode: TNodePolkadotKusama;
   exchange: TExchangeNode;
   assetFrom?: SdkTAsset;
   assetTo?: SdkTAsset;
   feeCalcAddress: string;
 };
+
+export type TTransferOptionsModified = Omit<TTransferOptions, 'exchange'> &
+  TAdditionalTransferOptions;
 
 export type TCommonTransferOptions = Omit<TTransferOptions, 'signer'>;
 export type TCommonTransferOptionsModified = Omit<TTransferOptionsModified, 'signer'>;
@@ -150,17 +134,14 @@ export type TAsset = {
 export type TAssets = Array<TAsset>;
 export type TAssetsRecord = Record<TExchangeNode, TAssets>;
 
-export type TBasicInfo = {
-  node: TNodeDotKsmWithRelayChains;
-  statusType: TransactionType;
-  wsProvider?: string;
-};
-
-export type TExtrinsicInfo = TBasicInfo & {
-  tx: Extrinsic;
-  type: 'EXTRINSIC';
-};
-
-export type TBuildTransferExtrinsicsResult = TExtrinsicInfo[];
-
 export type TAutoSelect = 'Auto select';
+
+export type TTransaction = {
+  api: TPjsApi;
+  node: TNodeDotKsmWithRelayChains;
+  destinationNode?: TNodeDotKsmWithRelayChains;
+  statusType: TransactionType;
+  tx: Extrinsic;
+};
+
+export type TRouterPlan = TTransaction[];

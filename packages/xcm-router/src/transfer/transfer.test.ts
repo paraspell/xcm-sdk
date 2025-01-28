@@ -10,11 +10,9 @@ import { createApiInstanceForNode } from '@paraspell/sdk-pjs';
 import type { ApiPromise } from '@polkadot/api';
 import { createSwapTx } from './createSwapTx';
 import { MOCK_TRANSFER_OPTIONS } from '../utils/testUtils';
-import { transferToExchange } from './transferToExchange';
-import { swap } from './swap';
-import { transferToDestination } from './transferToDestination';
 import { selectBestExchange } from './selectBestExchange';
 import { createAcalaApiInstance } from '../dexNodes/Acala/utils';
+import { submitSwap, submitTransferToDestination, submitTransferToExchange } from './utils';
 
 vi.mock('@paraspell/sdk-pjs', async () => {
   const actual = await vi.importActual('@paraspell/sdk-pjs');
@@ -32,6 +30,9 @@ vi.mock('./utils', async () => {
     ...actual,
     buildFromExchangeExtrinsic: vi.fn(),
     buildToExchangeExtrinsic: vi.fn(),
+    submitTransferToDestination: vi.fn(),
+    submitTransferToExchange: vi.fn(),
+    submitSwap: vi.fn(),
   };
 });
 
@@ -42,26 +43,6 @@ vi.mock('./createSwapTx', () => ({
 vi.mock('../utils/utils', () => ({
   delay: vi.fn(),
   calculateTransactionFee: vi.fn(),
-}));
-
-vi.mock('./transferToExchange', () => ({
-  transferToExchange: vi.fn(),
-}));
-
-vi.mock('./swap', () => ({
-  swap: vi.fn(),
-}));
-
-vi.mock('./transferToDestination', () => ({
-  transferToDestination: vi.fn(),
-}));
-
-vi.mock('./transferToEthereum', () => ({
-  transferToEthereum: vi.fn(),
-}));
-
-vi.mock('./transferFromEthereum', () => ({
-  transferFromEthereum: vi.fn(),
 }));
 
 vi.mock('./selectBestExchange', () => ({
@@ -79,13 +60,13 @@ vi.mock('../dexNodes/Acala/utils', () => ({
 describe('transfer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(transferToExchange).mockResolvedValue('');
-    vi.mocked(swap).mockResolvedValue('');
+    vi.mocked(submitTransferToExchange).mockResolvedValue('');
+    vi.mocked(submitSwap).mockResolvedValue('');
+    vi.mocked(submitTransferToDestination).mockResolvedValue('');
     vi.mocked(createSwapTx).mockResolvedValue({
       amountOut: '1',
       tx: {} as Extrinsic,
     });
-    vi.mocked(transferToDestination).mockResolvedValue('');
     vi.mocked(createAcalaApiInstance).mockResolvedValue({
       disconnect: async () => {},
     } as ApiPromise);
@@ -101,10 +82,10 @@ describe('transfer', () => {
       type: TransactionType.FULL_TRANSFER,
     };
     await transfer(options);
-    expect(transferToExchange).toHaveBeenCalled();
+    expect(submitTransferToExchange).toHaveBeenCalled();
     expect(createSwapTx).toHaveBeenCalled();
-    expect(swap).toHaveBeenCalled();
-    expect(transferToDestination).toHaveBeenCalled();
+    expect(submitSwap).toHaveBeenCalled();
+    expect(submitTransferToDestination).toHaveBeenCalled();
   });
 
   it('main transfer function - FULL_TRANSFER scenario - auto exchange', async () => {
@@ -128,10 +109,10 @@ describe('transfer', () => {
     );
 
     await transfer(options);
-    expect(transferToExchange).toHaveBeenCalled();
-    expect(swap).toHaveBeenCalled();
+    expect(submitTransferToExchange).toHaveBeenCalled();
+    expect(submitSwap).toHaveBeenCalled();
     expect(selectBestExchange).toHaveBeenCalledTimes(1);
-    expect(transferToDestination).toHaveBeenCalled();
+    expect(submitTransferToDestination).toHaveBeenCalled();
   });
 
   it('main transfer function - TO_EXCHANGE scenario', async () => {
@@ -141,9 +122,9 @@ describe('transfer', () => {
       type: TransactionType.TO_EXCHANGE,
     };
     await transfer(options);
-    expect(transferToExchange).toHaveBeenCalled();
-    expect(swap).not.toHaveBeenCalled();
-    expect(transferToDestination).not.toHaveBeenCalled();
+    expect(submitTransferToExchange).toHaveBeenCalled();
+    expect(submitSwap).not.toHaveBeenCalled();
+    expect(submitTransferToDestination).not.toHaveBeenCalled();
   });
 
   it('main transfer function - SWAP scenario', async () => {
@@ -153,9 +134,9 @@ describe('transfer', () => {
       type: TransactionType.SWAP,
     };
     await transfer(options);
-    expect(transferToExchange).not.toHaveBeenCalled();
-    expect(swap).toHaveBeenCalled();
-    expect(transferToDestination).not.toHaveBeenCalled();
+    expect(submitTransferToExchange).not.toHaveBeenCalled();
+    expect(submitSwap).toHaveBeenCalled();
+    expect(submitTransferToDestination).not.toHaveBeenCalled();
   });
 
   it('main transfer function - TO_DESTINATION scenario', async () => {
@@ -165,9 +146,9 @@ describe('transfer', () => {
       type: TransactionType.TO_DESTINATION,
     };
     await transfer(options);
-    expect(transferToExchange).not.toHaveBeenCalled();
-    expect(swap).not.toHaveBeenCalled();
-    expect(transferToDestination).toHaveBeenCalled();
+    expect(submitTransferToExchange).not.toHaveBeenCalled();
+    expect(submitSwap).not.toHaveBeenCalled();
+    expect(submitTransferToDestination).toHaveBeenCalled();
   });
 
   it('error handling - evmInjectorAddress without evmSigner', async () => {
@@ -225,7 +206,7 @@ describe('transfer', () => {
       type: TransactionType.TO_EXCHANGE,
     };
     await transfer(options);
-    expect(transferToExchange).not.toHaveBeenCalled();
+    expect(submitTransferToExchange).not.toHaveBeenCalled();
   });
 
   it('skips extrinsic building for transactions already on the exchange - FULL_TRANSFER', async () => {
@@ -236,7 +217,7 @@ describe('transfer', () => {
       type: TransactionType.FULL_TRANSFER,
     };
     await transfer(options);
-    expect(transferToExchange).not.toHaveBeenCalled();
+    expect(submitTransferToExchange).not.toHaveBeenCalled();
   });
 
   it('skips extrinsic building for transactions already on destination', async () => {
@@ -247,7 +228,7 @@ describe('transfer', () => {
       type: TransactionType.TO_DESTINATION,
     };
     await transfer(options);
-    expect(transferToDestination).not.toHaveBeenCalled();
+    expect(submitTransferToDestination).not.toHaveBeenCalled();
   });
 
   it('skips extrinsic building for transactions already on destination - FULL_TRANSFER', async () => {
@@ -258,6 +239,6 @@ describe('transfer', () => {
       type: TransactionType.FULL_TRANSFER,
     };
     await transfer(options);
-    expect(transferToDestination).not.toHaveBeenCalled();
+    expect(submitTransferToDestination).not.toHaveBeenCalled();
   });
 });

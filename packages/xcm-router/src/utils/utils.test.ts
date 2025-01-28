@@ -1,13 +1,8 @@
 // Unit tests for general utils
 
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { type Extrinsic, InvalidCurrencyError } from '@paraspell/sdk-pjs';
-import {
-  calculateTransactionFee,
-  delay,
-  maybeUpdateTransferStatus,
-  validateRelayChainCurrency,
-} from './utils';
+import { calculateTransactionFee, validateRelayChainCurrency } from './utils';
 import BigNumber from 'bignumber.js';
 import { type TTxProgressInfo, TransactionStatus, TransactionType } from '../types';
 
@@ -40,23 +35,6 @@ describe('validateRelayChainCurrency', () => {
     expect(() => {
       validateRelayChainCurrency('Kusama', { symbol: 'XYZ' });
     }).toThrow('Invalid currency for Kusama');
-  });
-});
-
-describe('delay', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('should wait for the specified amount of time', async () => {
-    const ms = 1000;
-    const promise = delay(ms);
-    vi.advanceTimersByTime(ms);
-    await expect(promise).resolves.toBeUndefined();
   });
 });
 
@@ -95,22 +73,7 @@ describe('maybeUpdateTransferStatus', () => {
       },
       status: TransactionStatus.SUCCESS,
     };
-
-    maybeUpdateTransferStatus(mockOnStatusChange, mockInfo);
-
     expect(mockOnStatusChange).toHaveBeenCalledTimes(1);
     expect(mockOnStatusChange).toHaveBeenCalledWith(mockInfo);
-  });
-
-  it('should not call onStatusChange when it is undefined', () => {
-    const mockOnStatusChange = undefined;
-    const mockInfo: TTxProgressInfo = {
-      type: TransactionType.SWAP,
-      status: TransactionStatus.IN_PROGRESS,
-    };
-
-    expect(() => {
-      maybeUpdateTransferStatus(mockOnStatusChange, mockInfo);
-    }).not.toThrow();
   });
 });
