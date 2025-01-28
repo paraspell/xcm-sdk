@@ -1,14 +1,13 @@
 import type {
-  TNodeWithRelayChains,
   Extrinsic,
-  TSerializedEthTransfer,
   TAsset as SdkTAsset,
   TNodePolkadotKusama,
   TCurrencyCoreV1,
+  TNodeDotKsmWithRelayChains,
+  TPjsApi,
 } from '@paraspell/sdk-pjs';
 import { type Signer } from '@polkadot/types/types';
 import { type EXCHANGE_NODES } from './consts';
-import type { Signer as EthSigner } from 'ethers';
 
 export type TExchangeNode = (typeof EXCHANGE_NODES)[number];
 
@@ -29,12 +28,8 @@ export interface TSwapResult {
 }
 
 export enum TransactionType {
-  TO_EXCHANGE = 'TO_EXCHANGE',
+  TRANSFER = 'TRANSFER',
   SWAP = 'SWAP',
-  TO_DESTINATION = 'TO_DESTINATION',
-  FULL_TRANSFER = 'FULL_TRANSFER',
-  FROM_ETH = 'FROM_ETH',
-  TO_ETH = 'TO_ETH',
 }
 
 /**
@@ -42,30 +37,9 @@ export enum TransactionType {
  */
 export interface TTxProgressInfo {
   /**
-   * When true the exchange will be selected automatically.
-   */
-  isAutoSelectingExchange?: boolean;
-  /**
    * The currently executed transaction type.
    */
   type: TransactionType;
-  /**
-   * The transaction hashes grouped by transaction type.
-   */
-  hashes?: {
-    [TransactionType.TO_EXCHANGE]?: string;
-    [TransactionType.SWAP]?: string;
-    [TransactionType.TO_DESTINATION]?: string;
-  };
-  /**
-   * The current transaction status. Either 'IN_PROGRESS' or 'SUCCESS'.
-   */
-  status: TransactionStatus;
-}
-
-export enum TransactionStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  SUCCESS = 'SUCCESS',
 }
 
 /**
@@ -75,11 +49,11 @@ export interface TTransferOptions {
   /**
    * The origin node to transfer from.
    */
-  from: TNodeWithRelayChains;
+  from: TNodeDotKsmWithRelayChains;
   /**
    * The destination node to transfer to.
    */
-  to: TNodeWithRelayChains;
+  to: TNodeDotKsmWithRelayChains;
   /**
    * The origin currency.
    */
@@ -102,10 +76,6 @@ export interface TTransferOptions {
    */
   evmInjectorAddress?: string;
   /**
-   * The AssetHub address. Used for transfers to and from Ethereum.
-   */
-  assetHubAddress?: string;
-  /**
    * The recipient address.
    */
   recipientAddress: string;
@@ -122,10 +92,6 @@ export interface TTransferOptions {
    */
   evmSigner?: Signer;
   /**
-   * The Ethereum signer instance.
-   */
-  ethSigner?: EthSigner;
-  /**
    * The exchange node to use for the transfer.
    */
   exchange?: TExchangeNode;
@@ -139,20 +105,24 @@ export interface TTransferOptions {
   type?: TransactionType;
 }
 
-export type TBuildTransferExtrinsicsOptions = Omit<
+export type TBuildTransactionsOptions = Omit<
   TTransferOptions,
-  'onStatusChange' | 'signer' | 'evmSigner' | 'ethSigner'
-> & {
-  ethAddress?: string;
-};
+  'onStatusChange' | 'signer' | 'evmSigner'
+>;
 
-export type TTransferOptionsModified = Omit<TTransferOptions, 'exchange'> & {
+export type TBuildTransactionsOptionsModified = TBuildTransactionsOptions &
+  TAdditionalTransferOptions;
+
+export type TAdditionalTransferOptions = {
   exchangeNode: TNodePolkadotKusama;
   exchange: TExchangeNode;
   assetFrom?: SdkTAsset;
   assetTo?: SdkTAsset;
   feeCalcAddress: string;
 };
+
+export type TTransferOptionsModified = Omit<TTransferOptions, 'exchange'> &
+  TAdditionalTransferOptions;
 
 export type TCommonTransferOptions = Omit<TTransferOptions, 'signer'>;
 export type TCommonTransferOptionsModified = Omit<TTransferOptionsModified, 'signer'>;
@@ -164,22 +134,14 @@ export type TAsset = {
 export type TAssets = Array<TAsset>;
 export type TAssetsRecord = Record<TExchangeNode, TAssets>;
 
-export type TBasicInfo = {
-  node: TNodeWithRelayChains;
-  statusType: TransactionType;
-  wsProvider?: string;
-};
-
-export type TExtrinsicInfo = TBasicInfo & {
-  tx: Extrinsic;
-  type: 'EXTRINSIC';
-};
-
-export type TEthOptionsInfo = TBasicInfo & {
-  tx: TSerializedEthTransfer | undefined;
-  type: 'ETH_TRANSFER';
-};
-
-export type TBuildTransferExtrinsicsResult = Array<TExtrinsicInfo | TEthOptionsInfo>;
-
 export type TAutoSelect = 'Auto select';
+
+export type TTransaction = {
+  api: TPjsApi;
+  node: TNodeDotKsmWithRelayChains;
+  destinationNode?: TNodeDotKsmWithRelayChains;
+  statusType: TransactionType;
+  tx: Extrinsic;
+};
+
+export type TRouterPlan = TTransaction[];

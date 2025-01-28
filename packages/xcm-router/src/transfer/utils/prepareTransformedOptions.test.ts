@@ -1,7 +1,6 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { findAssetFrom, findAssetTo } from '../../assets/assets';
 import { createDexNodeInstance } from '../../dexNodes/DexNodeFactory';
-import { maybeUpdateTransferStatus } from '../../utils/utils';
 import { selectBestExchange } from '../selectBestExchange';
 import { determineFeeCalcAddress } from './utils';
 import { prepareTransformedOptions } from './prepareTransformedOptions';
@@ -51,14 +50,6 @@ describe('prepareTransformedOptions', () => {
       currencyFrom: { symbol: 'ABC' },
       currencyTo: { symbol: 'XYZ' },
     } as TTransferOptions);
-
-    expect(maybeUpdateTransferStatus).toHaveBeenCalledTimes(2);
-
-    expect(maybeUpdateTransferStatus).toHaveBeenNthCalledWith(1, mockOnStatusChange, {
-      type: 'TO_EXCHANGE',
-      status: 'IN_PROGRESS',
-      isAutoSelectingExchange: false,
-    });
   });
 
   test('calls selectBestExchange if exchange is undefined', async () => {
@@ -77,12 +68,6 @@ describe('prepareTransformedOptions', () => {
     } as TTransferOptions);
 
     expect(selectBestExchange).toHaveBeenCalledTimes(1);
-    expect(maybeUpdateTransferStatus).toHaveBeenCalledWith(
-      mockOnStatusChange,
-      expect.objectContaining({
-        isAutoSelectingExchange: true,
-      }),
-    );
   });
 
   test('throws error when assetFrom is not found and currencyFrom has id', async () => {
